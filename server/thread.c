@@ -1788,6 +1788,8 @@ static int ios_apc_requeue_enabled( void )
     return enabled;
 }
 
+extern int ios_async_owner_has_waiter( struct object *owner );
+
 /* the thread to queue an undeliverable async I/O APC on, or NULL to drop it as before */
 static struct thread *ios_apc_requeue_target( struct thread *thread, const struct thread_apc *apc )
 {
@@ -1804,6 +1806,10 @@ static struct thread *ios_apc_requeue_target( struct thread *thread, const struc
             break;
         }
     }
+    /* madeira-sync-async-apc-self: nothing else to hand it to, but the issuer is about to wait
+     * for this very async, and that wait takes system APCs. Keep it there rather than drop it
+     * (a drop completes the I/O with STATUS_ALERTED and nothing done). */
+    if (!target && ios_async_owner_has_waiter( apc->owner )) target = thread;
     count++;
     if (count <= 16 || !(count & 1023))
         fprintf( stderr, "[apc-requeue] #%u async I/O APC status=%08x for busy thread %04x -> %s %04x\n",

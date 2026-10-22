@@ -238,6 +238,17 @@ static void async_destroy( struct object *obj )
     release_object( async->thread );
 }
 
+/* madeira-sync-async-apc-self: true when `owner` is an async whose issuing thread will
+ * wait for it in the server (a blocking wait handle). Such a thread's very next wait is
+ * that one, so an APC queued on it is delivered there. */
+int ios_async_owner_has_waiter( struct object *owner )
+{
+    struct async *async;
+    if (!owner || owner->ops != &async_ops) return 0;
+    async = (struct async *)owner;
+    return async->blocking && async->wait_handle;
+}
+
 /* notifies client thread of new status of its async request */
 void async_terminate( struct async *async, unsigned int status )
 {
