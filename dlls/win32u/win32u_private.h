@@ -387,8 +387,10 @@ extern __thread void *win32u_gdi_published_peb;
 extern void win32u_gdi_publish_shared(void);
 static inline void win32u_gdi_check_publish(void)
 {
-    if (win32u_wow_session && NtCurrentTeb()->WowTebOffset &&
-        win32u_gdi_published_peb != NtCurrentTeb()->Peb)
+    /* madeira-gdi-shared-every-process: 64-bit pseudo-processes too; only
+     * the first one to load user32 runs gdi_init(), which is what used to
+     * fill in its PEB. */
+    if (win32u_gdi_published_peb != NtCurrentTeb()->Peb)
         win32u_gdi_publish_shared();
 }
 #else
